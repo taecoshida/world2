@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Artificial Life — リアルタイム人工生命シミュレーション</title>
+  <meta name="description" content="自律エージェントが生態系を形成するリアルタイム人工生命シミュレーション。ブラウザだけで動作。">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
+    rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+  <div id="app">
+    <!-- Header -->
+    <header id="header">
+      <div class="header-left">
+        <div class="logo">
+          <span class="logo-icon">🧬</span>
+          <h1>Artificial Life</h1>
+        </div>
+        <span class="badge">LIVE</span>
+      </div>
+      <div class="header-right">
+        <div class="stat-pill" id="stat-fps">
+          <span class="stat-label">FPS</span>
+          <span class="stat-value" id="fps-value">0</span>
+        </div>
+        <div class="stat-pill" id="stat-entities">
+          <span class="stat-label">ENTITIES</span>
+          <span class="stat-value" id="entities-value">0</span>
+        </div>
+        <div class="stat-pill speed-pill" id="stat-speed">
+          <span class="stat-label">SPEED</span>
+          <span class="stat-value" id="speed-value">1x</span>
+        </div>
+      </div>
+    </header>
+
+    <!-- Main content -->
+    <main id="main">
+      <!-- Canvas area -->
+      <div id="canvas-container">
+        <canvas id="world-canvas"></canvas>
+        <div id="canvas-overlay">
+          <div class="overlay-stats">
+            <div class="pop-counter plant-counter">
+              <span class="pop-icon">🌿</span>
+              <span class="pop-label">植物</span>
+              <span class="pop-value" id="pop-plants">0</span>
+            </div>
+            <div class="pop-counter herb-counter">
+              <span class="pop-icon">🐇</span>
+              <span class="pop-label">草食</span>
+              <span class="pop-value" id="pop-herbs">0</span>
+            </div>
+            <div class="pop-counter pred-counter">
+              <span class="pop-icon">🐺</span>
+              <span class="pop-label">捕食者</span>
+              <span class="pop-value" id="pop-preds">0</span>
+            </div>
+          </div>
+        </div>
+        <!-- Spawn mode indicator -->
+        <div id="spawn-indicator" class="spawn-indicator hidden">
+          <span id="spawn-indicator-icon"></span>
+          <span id="spawn-indicator-text"></span>
+        </div>
+      </div>
+
+      <!-- Side Panel -->
+      <aside id="side-panel">
+        <!-- Population Graph -->
+        <section class="panel-section">
+          <h2 class="section-title">
+            <span class="section-icon">📊</span>
+            個体数推移
+          </h2>
+          <canvas id="graph-canvas" width="320" height="160"></canvas>
+        </section>
+
+        <!-- Spawn Controls -->
+        <section class="panel-section">
+          <h2 class="section-title">
+            <span class="section-icon">✨</span>
+            生物注入
+          </h2>
+          <p class="section-hint">ボタンで一括注入。または選択後キャンバスクリックで配置</p>
+          <div class="spawn-buttons">
+            <button class="spawn-btn plant-btn" id="spawn-plant">
+              <span>🌿</span> 植物 ×5
+            </button>
+            <button class="spawn-btn herb-btn" id="spawn-herb">
+              <span>🐇</span> 草食動物 ×5
+            </button>
+            <button class="spawn-btn pred-btn" id="spawn-pred">
+              <span>🐺</span> 捕食者 ×3
+            </button>
+          </div>
+          <div class="brush-mode">
+            <span class="brush-label">クリック配置モード:</span>
+            <div class="brush-toggle">
+              <button class="brush-btn active" data-brush="herbivore" id="brush-herb">🐇</button>
+              <button class="brush-btn" data-brush="predator" id="brush-pred">🐺</button>
+              <button class="brush-btn" data-brush="plant" id="brush-plant">🌿</button>
+            </div>
+          </div>
+        </section>
+
+        <!-- Speed Control -->
+        <section class="panel-section">
+          <h2 class="section-title">
+            <span class="section-icon">⏩</span>
+            シミュレーション速度
+          </h2>
+          <div class="speed-buttons">
+            <button class="speed-btn" data-speed="0" id="speed-pause">⏸</button>
+            <button class="speed-btn active" data-speed="1" id="speed-1x">1x</button>
+            <button class="speed-btn" data-speed="2" id="speed-2x">2x</button>
+            <button class="speed-btn" data-speed="4" id="speed-4x">4x</button>
+          </div>
+        </section>
+
+        <!-- Environment Controls -->
+        <section class="panel-section">
+          <h2 class="section-title">
+            <span class="section-icon">⚙️</span>
+            環境パラメータ
+          </h2>
+          <div class="controls">
+            <div class="control-row">
+              <label for="ctrl-plantRate">植物発生率</label>
+              <input type="range" id="ctrl-plantRate" min="0" max="0.1" step="0.005" value="0.03">
+              <span class="ctrl-value" id="val-plantRate">0.03</span>
+            </div>
+            <div class="control-row">
+              <label for="ctrl-herbSpeed">草食動物の速度</label>
+              <input type="range" id="ctrl-herbSpeed" min="0.5" max="4" step="0.1" value="1.8">
+              <span class="ctrl-value" id="val-herbSpeed">1.8</span>
+            </div>
+            <div class="control-row">
+              <label for="ctrl-predSpeed">捕食者の速度</label>
+              <input type="range" id="ctrl-predSpeed" min="0.5" max="4" step="0.1" value="2.2">
+              <span class="ctrl-value" id="val-predSpeed">2.2</span>
+            </div>
+            <div class="control-row">
+              <label for="ctrl-herbVision">草食動物の視野</label>
+              <input type="range" id="ctrl-herbVision" min="30" max="300" step="10" value="120">
+              <span class="ctrl-value" id="val-herbVision">120</span>
+            </div>
+            <div class="control-row">
+              <label for="ctrl-predVision">捕食者の視野</label>
+              <input type="range" id="ctrl-predVision" min="30" max="300" step="10" value="150">
+              <span class="ctrl-value" id="val-predVision">150</span>
+            </div>
+          </div>
+        </section>
+
+        <!-- Reset -->
+        <section class="panel-section">
+          <button class="reset-btn" id="reset-btn">🔄 世界をリセット</button>
+        </section>
+      </aside>
+    </main>
+  </div>
+
+  <script src="engine.js"></script>
+  <script src="simulation.js"></script>
+</body>
+
+</html>
